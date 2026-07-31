@@ -73,8 +73,13 @@ jobs:
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           echo "runtime=$RT" >> "$GITHUB_OUTPUT"
 
-      - name: List package schemes
-        run: xcodebuild -list || true
+      - name: Resolve the package scheme name
+        id: scheme
+        run: |
+          xcodebuild -list | tee /tmp/schemes.txt
+          NAME=$(awk '/Schemes:/{f=1;next} f && NF {print $1; exit}' /tmp/schemes.txt)
+          echo "scheme: ${NAME:-MUProbe}"
+          echo "name=${NAME:-MUProbe}" >> "$GITHUB_OUTPUT"
 
       - name: Run the probe in the iOS 27 Simulator
         id: simtest
@@ -83,7 +88,7 @@ jobs:
           mkdir -p out
           set -o pipefail
           xcodebuild test \
-            -scheme MUProbe-Package \
+            -scheme "${{ steps.scheme.outputs.name }}" \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -resultBundlePath out/sim.xcresult \
             CODE_SIGNING_ALLOWED=NO \

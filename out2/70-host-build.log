@@ -1,0 +1,50 @@
+Building for production...
+[Computing dependencies]
+[Provisioning 2 / 5]
+[Constructing description]
+[Pre-planning 1 / 124]
+[Planning deferred tasks]
+[Starting]
+[15 / 55] mu-probe-product
+[22 / 55] mu-probe
+[24 / 55] MUProbe_MUProbeKitTests
+[31 / 55] MUProbe_MUProbeKitTests
+[34 / 55]
+[36 / 55]
+[37 / 56] MUProbeKit
+[42 / 118]
+[44 / 118]
+[46 / 118]
+[47 / 118]
+[48 / 118]
+[50 / 118]
+[54 / 118]
+[56 / 118]
+[57 / 118]
+[58 / 118]
+[59 / 118]
+[60 / 118]
+[64 / 118]
+[65 / 118]
+[66 / 118]
+[67 / 118]
+[68 / 118]
+[70 / 118]
+[74 / 118]
+[75 / 118]
+[77 / 118]
+[78 / 118]
+[80 / 118]
+[81 / 118]
+[88 / 118]
+[90 / 118]
+[95 / 118]
+[98 / 118]
+[99 / 118]
+[100 / 118] MUProbeKit
+[108 / 120]
+[108 / 120] mu-probe
+[112 / 122] mu-probe
+[120 / 122] mu-probe-product
+[121 / 122] mu-probe-product
+Build complete! (57.93 sec)
