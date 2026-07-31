@@ -1,0 +1,109 @@
+name: API surface dump
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  surface:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain identity
+        run: |
+          set -x
+          sw_vers
+          uname -m
+          xcodebuild -version
+          xcode-select -p
+          ls -d /Applications/Xcode*.app || true
+
+      - name: Installed SDKs
+        run: xcodebuild -showsdks
+
+      - name: Simulator runtimes and devices
+        run: |
+          xcrun simctl list runtimes
+          echo "--- devicetypes ---"
+          xcrun simctl list devicetypes | head -60
+
+      - name: Locate MusicUnderstanding across every SDK
+        run: |
+          mkdir -p out
+          DEV=$(xcode-select -p)
+          echo "DEVELOPER_DIR=$DEV"
+          {
+            echo "### framework presence sweep"
+            for P in "$DEV"/Platforms/*.platform/Developer/SDKs/*.sdk; do
+              HIT=$(find "$P/System/Library/Frameworks" -maxdepth 1 -iname "MusicUnderstanding*" 2>/dev/null | head -5)
+              printf '%-90s %s\n' "$P" "${HIT:-ABSENT}"
+            done
+          } | tee out/00-framework-presence.txt
+
+      - name: Dump swiftinterface (the real public API text)
+        run: |
+          mkdir -p out
+          DEV=$(xcode-select -p)
+          find "$DEV/Platforms" -path "*MusicUnderstanding*" \
+               \( -name "*.swiftinterface" -o -name "*.h" -o -name "*.apinotes" -o -name "*.tbd" \) \
+               2>/dev/null | sort | tee out/01-artifact-paths.txt
+          i=0
+          while IFS= read -r f; do
+            case "$f" in
+              *.swiftinterface)
+                i=$((i+1))
+                base=$(printf '%s' "$f" | tr '/' '_')
+                echo "== $f ==" >> out/02-swiftinterface-index.txt
+                cp "$f" "out/iface-${i}-$(basename "$f")" || true
+                ;;
+            esac
+          done < out/01-artifact-paths.txt
+          echo "swiftinterface files copied: $i"
+          # Headers too (ObjC surface, if any)
+          find "$DEV/Platforms" -path "*MusicUnderstanding.framework*" -name "*.h" 2>/dev/null \
+            | while IFS= read -r h; do echo "===== $h ====="; cat "$h"; done > out/03-headers.txt || true
+          wc -c out/* 2>/dev/null || true
+
+      - name: swift-api-digester full module dump (simulator + macOS)
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          SIMSDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          MACSDK=$(xcrun --sdk macosx --show-sdk-path)
+          echo "SIMSDK=$SIMSDK"; echo "MACSDK=$MACSDK"
+          xcrun --sdk iphonesimulator swift-api-digester -dump-sdk \
+            -module MusicUnderstanding -o out/10-digest-iossim.json \
+            -target arm64-apple-ios27.0-simulator -sdk "$SIMSDK" \
+            -abort-on-module-fail 2>&1 | tail -40 || echo "iossim digest FAILED"
+          xcrun --sdk macosx swift-api-digester -dump-sdk \
+            -module MusicUnderstanding -o out/11-digest-macos.json \
+            -target arm64-apple-macos27.0 -sdk "$MACSDK" \
+            -abort-on-module-fail 2>&1 | tail -40 || echo "macos digest FAILED"
+          ls -l out/ || true
+
+      - name: Print swiftinterface inline (so it lands in the log too)
+        continue-on-error: true
+        run: |
+          for f in out/iface-*; do
+            echo "############ $f ############"
+            cat "$f"
+          done
+
+      - name: Structure/label grep — settle labeled-vs-unlabeled
+        continue-on-error: true
+        run: |
+          {
+            echo "### grep for structure/label/role/kind across dumped surface"
+            grep -rHniE 'chorus|verse|bridge|intro|outro|refrain|label|role|kind|category|SectionType|StructureResult|Section|Segment|Phrase' out/ \
+              | grep -v '^out/00-' | head -300
+          } | tee out/20-structure-label-grep.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-surface
+          path: out/
+          if-no-files-found: warn

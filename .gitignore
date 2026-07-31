@@ -1,0 +1,7 @@
+out/
+*.mp3
+*.wav
+*.m4a
+*.flac
+DerivedData/
+.build/
