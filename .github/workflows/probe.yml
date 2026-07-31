@@ -61,20 +61,10 @@ jobs:
         run: |
           set -e
           xcrun simctl list runtimes
-          RT=$(xcrun simctl list runtimes --json | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['runtimes']
-c=[r for r in d if r.get('isAvailable') and r.get('platform')=='iOS' and r['version'].startswith('27')]
-if not c: c=[r for r in d if r.get('isAvailable') and 'iOS' in r.get('identifier','')]
-print(sorted(c,key=lambda r:r['version'])[-1]['identifier'])
-")
+          python3 tools/pick_sim.py > /tmp/pick.txt
+          RT=$(sed -n 1p /tmp/pick.txt)
+          DT=$(sed -n 2p /tmp/pick.txt)
           echo "runtime: $RT"
-          DT=$(xcrun simctl list devicetypes --json | python3 -c "
-import json,sys
-d=json.load(sys.stdin)['devicetypes']
-c=[t for t in d if 'iPhone' in t['name'] and 'SE' not in t['name']]
-print(sorted(c,key=lambda t:t['name'])[-1]['identifier'])
-")
           echo "devicetype: $DT"
           UDID=$(xcrun simctl create mu-probe-sim "$DT" "$RT")
           echo "udid: $UDID"
@@ -103,31 +93,7 @@ print(sorted(c,key=lambda t:t['name'])[-1]['identifier'])
       - name: Extract simulator timelines from the log
         if: always()
         continue-on-error: true
-        run: |
-          mkdir -p out
-          python3 - <<'PY'
-import re, os, io
-os.makedirs("out", exist_ok=True)
-try:
-    log = open("out/50-simulator-test.log", errors="replace").read()
-except FileNotFoundError:
-    raise SystemExit("no simulator log")
-blocks = re.findall(r"<<<<<<<<<< BEGIN TIMELINE (\S+) >>>>>>>>>>(.*?)<<<<<<<<<< END TIMELINE \1 >>>>>>>>>>", log, re.S)
-print("timeline blocks found:", len(blocks))
-for slug, body in blocks:
-    with open(f"out/60-timeline-{slug}.txt", "w") as f:
-        f.write(body.strip() + "\n")
-    print("wrote", slug, len(body), "chars")
-env = re.search(r"=== ENVIRONMENT ===(.*?)=== SYNTHETIC RESULT ===", log, re.S)
-syn = re.search(r"=== SYNTHETIC RESULT ===(.*?)(?:\n\s*\n|Test Case)", log, re.S)
-with open("out/40-simulator-verdict.txt", "w") as f:
-    f.write("ENVIRONMENT\n" + (env.group(1) if env else "(not found)") + "\n")
-    f.write("SYNTHETIC RESULT\n" + (syn.group(1) if syn else "(not found)") + "\n")
-tab = re.search(r"=== TIMING TABLE \(iOS Simulator\) ===(.*?)\n\n", log, re.S)
-if tab:
-    open("out/41-timing-simulator.md","w").write(tab.group(1))
-print(open("out/40-simulator-verdict.txt").read())
-PY
+        run: python3 tools/extract_timelines.py out/50-simulator-test.log out
 
       - name: Pull report files out of the simulator container
         if: always()
