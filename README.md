@@ -16,6 +16,14 @@ Three questions:
 
 ## Audio
 
-No audio is stored in this repository. Test tracks are Creative Commons licensed and are
-downloaded by URL at CI time; each track's title, artist, license and source are recorded
-in the run output.
+No audio is stored in this repository. The test tracks are Creative Commons licensed and are
+downloaded by URL at CI time (see `tracks.txt`), analysed, and discarded with the runner.
+Nothing is redistributed and nothing is modified for redistribution.
+
+Attribution:
+
+- Distromacy, "Theory Of Lies And Confusion" — CC BY-NC-ND 3.0, via Jamendo
+- ZWITS, "Future Dreams" — CC BY-NC-ND 3.0, via Jamendo
+- Soundway, "This feelin again" — CC BY-NC-ND 3.0, via Jamendo
+- Josh Woodward, "Shot Down" — CC BY 3.0, via Jamendo
+- Broke For Free, "Something Elated" — CC BY 3.0 US, via Free Music Archive

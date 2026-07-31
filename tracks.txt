@@ -1,2 +1,7 @@
-# slug|direct-download-url   (one per line, "#" comments ignored)
-# populated once the corpus is verified
+# slug|direct-download-url   ("#" and blank lines ignored)
+# Creative Commons audio, fetched at CI time. No audio is ever committed here.
+edm-build-drop-a|https://archive.org/download/jamendo-577390/01-2195680-Distromacy-Theory%20Of%20Lies%20And%20Confusion.mp3
+edm-build-drop-b|https://archive.org/download/jamendo-629801/01-2310456-ZWITS-Future%20Dreams.mp3
+house-breakdown|https://archive.org/download/jamendo-621586/01-2293835-Soundway-This%20feelin%20again.mp3
+rock-verse-chorus|https://archive.org/download/jamendo-118684/01-1008348-Josh%20Woodward-Shot%20Down.mp3
+electronic-downtempo|https://archive.org/download/Something_EP-9563/Broke_For_Free_-_05_-_Something_Elated.mp3
