@@ -2,8 +2,6 @@ name: API surface dump
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   surface:

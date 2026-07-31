@@ -1,0 +1,164 @@
+name: Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  probe:
+    runs-on: xcode-27
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain identity
+        run: |
+          sw_vers
+          uname -m
+          sysctl -n machdep.cpu.brand_string || true
+          sysctl -n hw.ncpu hw.memsize || true
+          xcodebuild -version
+          xcode-select -p
+
+      - name: Fetch Creative Commons test audio (never committed)
+        run: |
+          set -u
+          mkdir -p Tests/MUProbeKitTests/Audio host-audio
+          COUNT=0
+          while IFS='|' read -r slug url; do
+            case "$slug" in ''|\#*) continue ;; esac
+            [ -z "${url:-}" ] && continue
+            slug=$(printf '%s' "$slug" | tr -d ' ')
+            url=$(printf '%s' "$url" | tr -d ' ')
+            ext="${url##*.}"
+            case "$ext" in mp3|m4a|wav|flac|aac|aif|aiff) ;; *) ext=mp3 ;; esac
+            dest="host-audio/${slug}.${ext}"
+            echo "--- fetching $slug"
+            if curl -sSL --fail --max-time 240 -o "$dest" "$url"; then
+              file "$dest"
+              ls -l "$dest"
+              cp "$dest" "Tests/MUProbeKitTests/Audio/${slug}.${ext}"
+              COUNT=$((COUNT+1))
+            else
+              echo "!!! download failed: $slug <- $url"
+            fi
+          done < tracks.txt
+          echo "downloaded $COUNT track(s)"
+          ls -l Tests/MUProbeKitTests/Audio/ || true
+
+      - name: Probe durations with ffprobe/afinfo
+        continue-on-error: true
+        run: |
+          for f in host-audio/*; do
+            [ -f "$f" ] || continue
+            echo "=== $f ==="
+            afinfo "$f" 2>&1 | head -12 || true
+          done
+
+      - name: Create and boot an iOS 27 simulator
+        id: sim
+        run: |
+          set -e
+          xcrun simctl list runtimes
+          RT=$(xcrun simctl list runtimes --json | python3 -c "
+import json,sys
+d=json.load(sys.stdin)['runtimes']
+c=[r for r in d if r.get('isAvailable') and r.get('platform')=='iOS' and r['version'].startswith('27')]
+if not c: c=[r for r in d if r.get('isAvailable') and 'iOS' in r.get('identifier','')]
+print(sorted(c,key=lambda r:r['version'])[-1]['identifier'])
+")
+          echo "runtime: $RT"
+          DT=$(xcrun simctl list devicetypes --json | python3 -c "
+import json,sys
+d=json.load(sys.stdin)['devicetypes']
+c=[t for t in d if 'iPhone' in t['name'] and 'SE' not in t['name']]
+print(sorted(c,key=lambda t:t['name'])[-1]['identifier'])
+")
+          echo "devicetype: $DT"
+          UDID=$(xcrun simctl create mu-probe-sim "$DT" "$RT")
+          echo "udid: $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b || true
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "runtime=$RT" >> "$GITHUB_OUTPUT"
+
+      - name: List package schemes
+        run: xcodebuild -list || true
+
+      - name: Run the probe in the iOS 27 Simulator
+        id: simtest
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          set -o pipefail
+          xcodebuild test \
+            -scheme MUProbe-Package \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath out/sim.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee out/50-simulator-test.log
+          echo "exit=$?"
+
+      - name: Extract simulator timelines from the log
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          python3 - <<'PY'
+import re, os, io
+os.makedirs("out", exist_ok=True)
+try:
+    log = open("out/50-simulator-test.log", errors="replace").read()
+except FileNotFoundError:
+    raise SystemExit("no simulator log")
+blocks = re.findall(r"<<<<<<<<<< BEGIN TIMELINE (\S+) >>>>>>>>>>(.*?)<<<<<<<<<< END TIMELINE \1 >>>>>>>>>>", log, re.S)
+print("timeline blocks found:", len(blocks))
+for slug, body in blocks:
+    with open(f"out/60-timeline-{slug}.txt", "w") as f:
+        f.write(body.strip() + "\n")
+    print("wrote", slug, len(body), "chars")
+env = re.search(r"=== ENVIRONMENT ===(.*?)=== SYNTHETIC RESULT ===", log, re.S)
+syn = re.search(r"=== SYNTHETIC RESULT ===(.*?)(?:\n\s*\n|Test Case)", log, re.S)
+with open("out/40-simulator-verdict.txt", "w") as f:
+    f.write("ENVIRONMENT\n" + (env.group(1) if env else "(not found)") + "\n")
+    f.write("SYNTHETIC RESULT\n" + (syn.group(1) if syn else "(not found)") + "\n")
+tab = re.search(r"=== TIMING TABLE \(iOS Simulator\) ===(.*?)\n\n", log, re.S)
+if tab:
+    open("out/41-timing-simulator.md","w").write(tab.group(1))
+print(open("out/40-simulator-verdict.txt").read())
+PY
+
+      - name: Pull report files out of the simulator container
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p out/sim-reports
+          find /Users/runner/Library/Developer/CoreSimulator/Devices/${{ steps.sim.outputs.udid }} \
+               -name "*.sim.timeline.txt" -exec cp {} out/sim-reports/ \; 2>/dev/null || true
+          ls -l out/sim-reports/ || true
+
+      - name: Build the macOS host harness
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          swift build -c release 2>&1 | tee out/70-host-build.log || true
+
+      - name: Attempt the macOS host run (expected to need macOS 27)
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          SPECS=""
+          for f in host-audio/*; do
+            [ -f "$f" ] || continue
+            b=$(basename "$f"); SPECS="$SPECS ${b%.*}=$f"
+          done
+          echo "specs:$SPECS"
+          ( swift run -c release mu-probe out/host-reports $SPECS ) 2>&1 | tee out/71-host-run.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probe-results
+          path: out/
+          if-no-files-found: warn

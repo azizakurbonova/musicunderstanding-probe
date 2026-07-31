@@ -1,0 +1,2 @@
+# slug|direct-download-url   (one per line, "#" comments ignored)
+# populated once the corpus is verified
