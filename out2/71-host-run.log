@@ -1,8 +1,0 @@
-Building for production...
-[Pre-planning 1 / 65]
-[Planning deferred tasks]
-[1 / 4] MUProbeKit
-Build complete! (0.63 sec)
-dyld[37619]: Library not loaded: /System/Library/Frameworks/MusicUnderstanding.framework/Versions/A/MusicUnderstanding
-  Referenced from: <F1521D4D-211B-33C4-A402-151F56260047> /Users/runner/work/musicunderstanding-probe/musicunderstanding-probe/.build/out/Products/Release/mu-probe (built for macOS 27.0 which is newer than running OS)
-  Reason: tried: '/System/Library/Frameworks/MusicUnderstanding.framework/Versions/A/MusicUnderstanding' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/System/Library/Frameworks/MusicUnderstanding.framework/Versions/A/MusicUnderstanding' (no such file), '/System/Library/Frameworks/MusicUnderstanding.framework/Versions/A/MusicUnderstanding' (no such file, not in dyld cache)

@@ -1,7 +1,10 @@
 out/
+res/
+out2/
 *.mp3
 *.wav
 *.m4a
 *.flac
 DerivedData/
 .build/
+.DS_Store

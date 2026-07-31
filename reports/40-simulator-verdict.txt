@@ -1,0 +1,31 @@
+ENVIRONMENT
+
+targetEnvironment: SIMULATOR
+ProcessInfo.os: Version 27.0 (Build 24A5380i)
+synthesised: /Users/runner/Library/Developer/CoreSimulator/Devices/A1149A12-F203-4A0F-928D-91F03EC767D8/data/tmp/mu-click-120-25.wav
+2026-07-31 01:20:34.224204+0000 xctest[16985:935902] [carc] Invalidation handler: Connection cannot be formed.
+2026-07-31 01:20:34.379616+0000 xctest[16985:936098] [plugin] AddInstanceForFactory: No factory registered for id <CFUUID 0x10a0a2d60> F8BB1C28-BAE8-11D6-9C31-00039315CD46
+2026-07-31 01:20:34.584666+0000 xctest[16985:935902] [AQ]        LoudnessManager.mm:1767  ReadPListFile: unable to open stream for LoudnessManager plist
+2026-07-31 01:20:34.585460+0000 xctest[16985:935902] [AQ]        LoudnessManager.mm:1268  GetHardwarePlatformKey: cannot get acoustic ID
+2026-07-31 01:20:34.585575+0000 xctest[16985:935902] [AQ]        LoudnessManager.mm:1222  IsHardwareSupported: no plist loaded, returning false
+2026-07-31 01:20:34.585764+0000 xctest[16985:935902] [AQ]        LoudnessManager.mm:1222  IsHardwareSupported: no plist loaded, returning false
+2026-07-31 01:20:34.599187+0000 xctest[16985:936134] [AQ]        LoudnessManager.mm:1222  IsHardwareSupported: no plist loaded, returning false
+2026-07-31 01:20:34.599499+0000 xctest[16985:936134] [AQ]        LoudnessManager.mm:1222  IsHardwareSupported: no plist loaded, returning false
+2026-07-31 01:20:34.630152+0000 xctest[16985:935902] [coreml] Failed to get the home directory when checking model path.
+2026-07-31 01:20:35.349882+0000 xctest[16985:936106] [coreml] Failed to get the home directory when checking model path.
+
+SYNTHETIC RESULT
+
+rhythm present    : true
+beats             : 51
+bars              : 13
+bpm               : Optional(120.061)
+loudness present  : true
+integrated LUFS   : Optional(-21.139408)
+shortTerm samples : 250
+structure present : true
+sections          : 1
+segments          : 3
+phrases           : 6
+pace ranges       : 1
+detected BPM 120.061 against a synthesised 120
