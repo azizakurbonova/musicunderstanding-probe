@@ -1,9 +1,9 @@
 name: Probe
 
+# Round 1 is complete — manual trigger only, so round-2 pushes don't burn
+# a redundant 25-minute run.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   probe:

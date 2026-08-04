@@ -1,0 +1,111 @@
+name: Probe Round 2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  round2:
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain identity
+        run: |
+          sw_vers
+          uname -m
+          sysctl -n machdep.cpu.brand_string || true
+          xcodebuild -version
+          xcode-select -p
+          xcodebuild -showsdks || true
+
+      - name: Fetch Creative Commons test audio (never committed)
+        run: |
+          set -u
+          mkdir -p Tests/MUProbeKitTests/Audio
+          COUNT=0
+          while IFS='|' read -r slug url; do
+            case "$slug" in ''|\#*) continue ;; esac
+            [ -z "${url:-}" ] && continue
+            slug=$(printf '%s' "$slug" | tr -d ' ')
+            url=$(printf '%s' "$url" | tr -d ' ')
+            ext="${url##*.}"
+            case "$ext" in mp3|m4a|wav|flac|aac|aif|aiff) ;; *) ext=mp3 ;; esac
+            dest="Tests/MUProbeKitTests/Audio/${slug}.${ext}"
+            echo "--- fetching $slug"
+            for attempt in 1 2 3; do
+              if curl -sSL --fail --max-time 240 -o "$dest" "$url"; then
+                break
+              fi
+              echo "    retry $attempt failed, sleeping"
+              sleep 10
+            done
+            if [ -s "$dest" ]; then
+              file "$dest"
+              COUNT=$((COUNT+1))
+            else
+              echo "!!! download failed after retries: $slug <- $url"
+              rm -f "$dest"
+            fi
+          done < tracks.txt
+          echo "downloaded $COUNT track(s)"
+          ls -l Tests/MUProbeKitTests/Audio/
+
+      - name: Create and boot an iOS 27 simulator
+        id: sim
+        run: |
+          set -e
+          xcrun simctl list runtimes
+          python3 tools/pick_sim.py > /tmp/pick.txt
+          RT=$(sed -n 1p /tmp/pick.txt)
+          DT=$(sed -n 2p /tmp/pick.txt)
+          echo "runtime: $RT"
+          echo "devicetype: $DT"
+          UDID=$(xcrun simctl create mu-r2-sim "$DT" "$RT")
+          echo "udid: $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b || true
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve the package scheme name
+        id: scheme
+        run: |
+          xcodebuild -list | tee /tmp/schemes.txt
+          NAME=$(awk '/Schemes:/{f=1;next} f && NF {print $1; exit}' /tmp/schemes.txt)
+          echo "scheme: ${NAME:-MUProbe}"
+          echo "name=${NAME:-MUProbe}" >> "$GITHUB_OUTPUT"
+
+      - name: Run round 2 in the iOS 27 Simulator
+        id: simtest
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          set -o pipefail
+          xcodebuild test \
+            -scheme "${{ steps.scheme.outputs.name }}" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -only-testing:MUProbeKitTests/Round2ProbeTests \
+            -resultBundlePath out/round2.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee out/round2-test.log
+          echo "exit=$?"
+
+      - name: Pull round-2 reports out of the simulator container
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p out/round2-reports
+          SRC=$(find /Users/runner/Library/Developer/CoreSimulator/Devices/${{ steps.sim.outputs.udid }} \
+                -type d -name "mu-round2-reports" 2>/dev/null | head -1)
+          echo "container dir: ${SRC:-NOT-FOUND}"
+          [ -n "$SRC" ] && cp -R "$SRC"/. out/round2-reports/ || true
+          ls -l out/round2-reports/ || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: round2-results
+          path: |
+            out/round2-reports/
+            out/round2-test.log
+          if-no-files-found: warn

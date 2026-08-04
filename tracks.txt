@@ -5,3 +5,11 @@ edm-build-drop-b|https://archive.org/download/jamendo-629801/01-2310456-ZWITS-Fu
 house-breakdown|https://archive.org/download/jamendo-621586/01-2293835-Soundway-This%20feelin%20again.mp3
 rock-verse-chorus|https://archive.org/download/jamendo-118684/01-1008348-Josh%20Woodward-Shot%20Down.mp3
 electronic-downtempo|https://archive.org/download/Something_EP-9563/Broke_For_Free_-_05_-_Something_Elated.mp3
+# Round 2 additions (2026-08-04), licences read from each file's own ID3 copyright frame:
+# trance-build-drop CC BY-ND 3.0 · pop-vocal-upbeat CC BY-NC-ND 3.0 · funk-pop-vocal CC BY-NC-SA 3.0
+# metal-verse-chorus CC BY-NC-ND 3.0 · ambient-piano-sparse CC BY-NC-ND 3.0
+trance-build-drop|https://archive.org/download/jamendo-126062/01-1066453-Zoltan%20Peter-Gaya.mp3
+pop-vocal-upbeat|https://archive.org/download/jamendo-416126/01-1567154-I.D.-Pop%20Upbeat%20Vocal.mp3
+funk-pop-vocal|https://archive.org/download/jamendo-160618/01-1364318-The.madpix.project-Green%20Light.mp3
+metal-verse-chorus|https://archive.org/download/jamendo-632951/02-2317610-Living%20Dead%20Rod-Sinking%20Ship.mp3
+ambient-piano-sparse|https://archive.org/download/jamendo-495417/01-1972373-Mikael%20Paranthoen-Feelings.mp3
